@@ -6,6 +6,7 @@ import shutil
 import socket
 import sys
 import threading
+import time
 from typing import TYPE_CHECKING
 
 
@@ -17,13 +18,21 @@ def info(msg: str) -> None:
     print(msg, file=sys.stderr)
 
 
-def copier(fsrc: SupportsRead[bytes], fdst: SupportsWrite[bytes], exc_q: queue.SimpleQueue[BaseException | None]) -> None:
+def copier(
+    fsrc: SupportsRead[bytes], fdst: SupportsWrite[bytes], exc_q: queue.SimpleQueue[BaseException | None], quit_after: float | None = None
+) -> None:
     try:
         shutil.copyfileobj(fsrc, fdst)
     except BaseException as e:
         exc_q.put(e)
-    else:
+        return
+
+    if not quit_after:
         exc_q.put(None)
+        return
+
+    time.sleep(quit_after)
+    exc_q.put(TimeoutError())
 
 
 def main() -> None:
@@ -31,6 +40,8 @@ def main() -> None:
     p.add_argument('-v', '--verbose', action='store_true')
     p.add_argument('-l', '--listen', action='store_true')
     p.add_argument('-p', '--local-port', type=int)
+    p.add_argument('-w', '--idle-timeout', type=float)
+    p.add_argument('-q', '--eof-quit-time', type=float)
     p.add_argument('host', nargs='?')
     p.add_argument('port', type=int, nargs='?')
     args = p.parse_args()
@@ -59,26 +70,23 @@ def main() -> None:
             info(f'Error! {e}')
             raise SystemExit(1) from None
 
-    exc_q = queue.SimpleQueue[BaseException | None]()
+    sock.settimeout(args.idle_timeout)
 
+    exc_q = queue.SimpleQueue[BaseException | None]()
     worker_threads = [
-        threading.Thread(target=copier, args=(open(0, 'rb', buffering=0), sock.makefile('wb', buffering=0), exc_q), daemon=True),
+        threading.Thread(target=copier, args=(open(0, 'rb', buffering=0), sock.makefile('wb', buffering=0), exc_q, args.eof_quit_time), daemon=True),
         threading.Thread(target=copier, args=(sock.makefile('rb', buffering=0), open(1, 'wb', buffering=0), exc_q), daemon=True),
     ]
-
     for thread in worker_threads:
         thread.start()
-
     try:
-        for _ in worker_threads:
-            if (exc := exc_q.get()) is not None:
-                raise exc
-    except (KeyboardInterrupt, BrokenPipeError):
+        if (exc := exc_q.get()) is not None:
+            raise exc
+        verb('Done')
+    except (KeyboardInterrupt, BrokenPipeError, TimeoutError):
         pass
     except ConnectionError as e:
         verb(str(e))
-    else:
-        verb('Done')
 
 
 if __name__ == '__main__':
