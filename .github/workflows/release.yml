@@ -37,7 +37,7 @@ jobs:
         if: inputs.bump-version != 'none'
 
       - name: Build wheel
-        run: uv build --wheel
+        run: uv build
 
       - name: Get package version information
         id: version-info
