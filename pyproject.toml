@@ -1,0 +1,65 @@
+[build-system]
+requires = ["uv_build>=0.7.3,<0.8"]
+build-backend = "uv_build"
+
+[project]
+name = "netcat-py"
+version = "0.0.1"
+description = "NetCat in Python"
+readme = "README.md"
+authors = [{ name = "Zeev Rotshtein", email = "zeevro@gmail.com" }]
+requires-python = ">=3.10"
+
+[project.scripts]
+netcat-py = "netcat_py:main"
+
+[project.urls]
+Repository = "https://github.com/zeevro/netcat-py"
+
+[tool.ruff]
+line-length = 150
+output-format = "concise"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "W191", # tab-indentation - conflicts with formatter
+    "E111", # indentation-with-invalid-multiple - conflicts with formatter
+    "E114", # indentation-with-invalid-multiple-comment - conflicts with formatter
+    "E117", # over-indented - conflicts with formatter
+    "D206", # indent-with-spaces - conflicts with formatter
+    "D300", # triple-single-quotes - conflicts with formatter
+    "Q000", # bad-quotes-inline-string - conflicts with formatter
+    "Q001", # bad-quotes-multiline-string - conflicts with formatter
+    "Q002", # bad-quotes-docstring - conflicts with formatter
+    "Q003", # avoidable-escaped-quote - conflicts with formatter
+    "COM812", # missing-trailing-comma - conflicts with formatter
+    "COM819", # prohibited-trailing-comma - conflicts with formatter
+    "E501", # line-too-long - see formatter documentation
+
+    "C90", # linter: mccabe
+    "D", # linter: pydocstyle
+
+    "BLE001", # blind-except
+    "T201", # print
+    "SIM115", # open-file-with-context-handler
+    "PLR0904", # too-many-public-methods
+    "PLR0911", # too-many-return-statements
+    "PLR0912", # too-many-branches
+    "PLR0913", # too-many-arguments
+    "PLR0914", # too-many-locals
+    "PLR0915", # too-many-statements
+    "PLR0916", # too-many-boolean-expressions
+    "PLR0917", # too-many-positional-arguments
+]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+lines-after-imports = 2
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.mypy]
+strict = true
+files = ["src/"]
